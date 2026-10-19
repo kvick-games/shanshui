@@ -24,9 +24,12 @@ function strokePath(ctx, pts) {
 }
 
 // Paint the seal with its top-left at (x, y), width w (height = 1.62 w).
-export function paintSeal(ctx, x, y, w, { seed = 9, color = [176, 38, 30] } = {}) {
+// `text` carves those characters, one per cell down the seal, in a CJK serif font instead
+// of the 山水 strokes; a one-character seal is square.
+export function sealHeight(w, text) { return text && [...text].length === 1 ? w : w * 1.62; }
+export function paintSeal(ctx, x, y, w, { seed = 9, color = [176, 38, 30], text = null } = {}) {
   const r = makeRng(seed);
-  const h = w * 1.62;
+  const h = sealHeight(w, text);
   const cv = new OffscreenCanvas(Math.ceil(w * 4), Math.ceil(h * 4));
   const g = cv.getContext('2d');
   g.scale(4, 4);
@@ -44,7 +47,9 @@ export function paintSeal(ctx, x, y, w, { seed = 9, color = [176, 38, 30] } = {}
   // carve the characters
   g.globalCompositeOperation = 'destination-out';
   g.lineCap = 'butt'; g.lineJoin = 'round';
-  const pad = w * 0.14, cellW = w - pad * 2, gap = w * 0.07, cellH = (h - pad * 2 - gap) / 2;
+  const chars = text ? [...text] : null;
+  const cells = chars ? chars.length : 2;
+  const pad = w * 0.14, cellW = w - pad * 2, gap = w * 0.07, cellH = (h - pad * 2 - gap * (cells - 1)) / cells;
   const drawGlyph = (strokes, ox, oy) => {
     g.save(); g.translate(ox, oy); g.scale(cellW / 100, cellH / 100);
     g.filter = 'blur(0.35px)';
@@ -52,8 +57,17 @@ export function paintSeal(ctx, x, y, w, { seed = 9, color = [176, 38, 30] } = {}
     for (const st of strokes) strokePath(g, st.map(([px, py]) => [px + (r() - 0.5) * 1.6, py + (r() - 0.5) * 1.6]));
     g.restore();
   };
-  drawGlyph(SHAN, pad, pad);
-  drawGlyph(SHUI, pad, pad + cellH + gap);
+  const drawChar = (ch, ox, oy) => {
+    g.save(); g.translate(ox + cellW / 2, oy + cellH / 2);
+    g.filter = 'blur(0.35px)';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `bold ${Math.min(cellW, cellH) * 1.04}px "SimSun", "MS Mincho", "Songti SC", "Noto Serif CJK SC", serif`;
+    g.rotate((r() - 0.5) * 0.02);
+    g.fillText(ch, 0, cellH * 0.04);
+    g.restore();
+  };
+  if (chars) chars.forEach((ch, i) => drawChar(ch, pad, pad + i * (cellH + gap)));
+  else { drawGlyph(SHAN, pad, pad); drawGlyph(SHUI, pad, pad + cellH + gap); }
   // chips and uneven paste
   for (let i = 0; i < 14; i++) {
     const ex = r() < 0.5 ? (r() < 0.5 ? 0 : w) : r() * w, ey = ex === 0 || ex === w ? r() * h : (r() < 0.5 ? 0 : h);
