@@ -10,6 +10,8 @@ export const SCENES = {
   s08: () => import('./s08-red-cascade.js'),
   s09: () => import('./s09-floating-peaks.js'),
   s10: () => import('./s10-autumn-ruins.js'),
+  // Tanuki fork: not in the film's cut, no reference painting
+  s11: () => import('./s11-tanuki-kitchen.js'),
 };
 
 export const REF = { s01: '01', s02: '02', s03: '03', s04: '04', s05: '05', s06: '06', s07: '07', s08: '08', s09: '09', s10: '10' };
